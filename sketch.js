@@ -2,6 +2,9 @@
 // ECHO GARDEN — INSTALLATION BUILD
 // =====================
 
+// simple mobile detection for layout decisions (not security, just visuals)
+let isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
 // mask images and qr
 let masks = [];
 let maskIdx = 0;
@@ -395,46 +398,65 @@ function drawPulses() {
 
 
 // =====================
-// HUD PROMPT + QR (enlarged)
+// HUD PROMPT + QR (desktop only)
 // =====================
 function drawPromptHUD() {
-  const boxPaddingX = 24;
-  const boxPaddingY = 16;
+  // on phones, don't show this overlay (they already have the input bar)
+  if (isMobile) return;
+
+  // visual layout numbers
+  const paddingX = 24;
+  const paddingY = 16;
   const lineH = 30;
 
   const textLine1 = "ADD A THOUGHT →";
   const textLine2 = "type below or scan QR";
 
+  // text styling first, so we can measure width
   textSize(28);
   textAlign(LEFT, TOP);
 
   const w1 = textWidth(textLine1);
   const w2 = textWidth(textLine2);
-  const boxW = max(w1, w2) + boxPaddingX * 2;
-  const boxH = lineH * 2 + boxPaddingY * 2;
+  const textBlockW = max(w1, w2);
 
-  const marginLeft = 40;
-  const marginBottomFromCanvas = 220; // higher up
-  const boxX = marginLeft;
-  const boxY = height - marginBottomFromCanvas;
+  // QR size slightly smaller than before so it's not screaming
+  const qrSize = 180; // was huge, now calmer but still very scannable on a wall
+
+  // panel dims: text block + gap + qr
+  const gap = 24;
+  const panelW = paddingX * 2 + textBlockW + gap + qrSize;
+  const panelH = paddingY * 2 + max(lineH * 2, qrSize * 0.8); 
+  // qr might be taller, but we align vertically anyway
+
+  // position panel up from bottom-left
+  const panelX = 40;
+  const panelY = height - 260; // push up a bit so not colliding with bottom bar
 
   push();
   noStroke();
-  fill(0, 200);
-  rect(boxX, boxY, boxW, boxH, 10);
+  // softer background, more see-through so it's not a giant black chunk
+  fill(0, 160);
+  rect(panelX, panelY, panelW, panelH, 12);
 
+  // draw text block
   fill(255);
-  text(textLine1, boxX + boxPaddingX, boxY + boxPaddingY);
-  fill(200);
-  text(textLine2, boxX + boxPaddingX, boxY + boxPaddingY + lineH);
+  text(textLine1, panelX + paddingX, panelY + paddingY);
 
-  // larger QR — 4× previous size
+  fill(200);
+  text(textLine2, panelX + paddingX, panelY + paddingY + lineH);
+
+  // draw QR to the right of the text
   if (qrImg) {
-    const qrSize = boxH * 2.5;
-    image(qrImg, boxX + boxW + 20, boxY - (qrSize - boxH) / 2, qrSize, qrSize);
+    const qrX = panelX + paddingX + textBlockW + gap;
+    // vertically align qr to panel center
+    const qrY = panelY + (panelH - qrSize) / 2;
+    image(qrImg, qrX, qrY, qrSize, qrSize);
   }
+
   pop();
 }
+
 
 
 
