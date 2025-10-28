@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+/>
+<title>Echo Garden</title>
+<style>
+  body {
+    background: #0f1f21;
+    color: #fff;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    padding: 2rem 1.5rem;
+    max-width: 420px;
+    margin: 0 auto;
+    line-height: 1.4;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 0.5rem;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  p.desc {
+    font-size: 0.9rem;
+    color: #b8cacc;
+    text-align: center;
+    margin: 0 0 2rem;
+  }
+
+  .card {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  label {
+    font-size: 0.8rem;
+    color: #b8cacc;
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 0.7rem 0.8rem;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+  }
+
+  button {
+    width: 100%;
+    margin-top: 1rem;
+    background: #ffffff;
+    color: #0f1f21;
+    border: none;
+    border-radius: 8px;
+    padding: 0.8rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button:active {
+    transform: scale(0.99);
+  }
+
+  .thanks {
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: #8aa5a7;
+    text-align: center;
+    min-height: 1.2rem;
+  }
+
+  footer {
+    margin-top: 3rem;
+    font-size: 0.7rem;
+    color: #678;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>ECHO GARDEN</h1>
+<p class="desc">Your words will appear on the wall in real time.</p>
+
+<div class="card">
+  <label for="msg">Leave a thought, feeling, wish, prayer...</label>
+  <input id="msg" type="text" maxlength="140" placeholder="i am learning to breathe again" />
+  <button id="sendBtn">Plant</button>
+  <div class="thanks" id="thanks"></div>
+</div>
+
+<footer>
+  Be kind. Be gentle. This is a shared space.
+</footer>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+// 🔴 SAME CONFIG AS IN YOUR WALL SKETCH
+const firebaseConfig = {
+   apiKey: "AIzaSyCdXqb4ThSjMV0nVwWwcxpix6xah9Rb9xc",
+    authDomain: "echo-garden-15462.firebaseapp.com",
+    databaseURL: "https://echo-garden-15462-default-rtdb.firebaseio.com",
+    projectId: "echo-garden-15462",
+    storageBucket: "echo-garden-15462.firebasestorage.app",
+    messagingSenderId: "487946881725",
+    appId: "1:487946881725:web:dff84445b0822d5fe145d4"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const msgInput = document.getElementById('msg');
+const sendBtn = document.getElementById('sendBtn');
+const thanksEl = document.getElementById('thanks');
+
+sendBtn.addEventListener('click', async () => {
+  const text = msgInput.value.trim();
+  if (!text) {
+    thanksEl.textContent = "please write something first 🌱";
+    return;
+  }
+
+  const submission = {
+    text: text,
+    timestamp: Date.now()
+  };
+
+  try {
+    await db.ref('echoGarden/submissions').push(submission);
+    thanksEl.textContent = "planted. thank you 💚";
+    msgInput.value = "";
+    setTimeout(() => {
+      thanksEl.textContent = "";
+    }, 2500);
+  } catch (e) {
+    console.error(e);
+    thanksEl.textContent = "something went wrong. try again?";
+  }
+});
+</script>
+
+</body>
+</html>
