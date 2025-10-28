@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
 <title>Echo Garden</title>
 
-<link rel="stylesheet" href="style.css" />
-
 <!-- p5.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
 
@@ -32,8 +30,8 @@
     display: flex;
     gap: 8px;
     align-items: center;
-    justify-content: flex-start;
-    background: rgba(0,0,0,0.4);
+    justify-content: center;
+    background: rgba(0,0,0,0.45);
     border-top: 1px solid rgba(255,255,255,0.15);
     font-size: 14px;
     color: #fff;
@@ -41,46 +39,54 @@
 
   #thoughtInput {
     flex: 1;
+    max-width: 600px;
     min-width: 0;
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 6px;
-    padding: 8px 10px;
+    padding: 10px 12px;
     color: #fff;
-    font-size: 14px;
+    font-size: 16px;
     outline: none;
   }
 
-  .eg-btn {
-    background: #fff;
+  #plantBtn {
+    background: #ffffff;
     color: #0f1f21;
     border: none;
     border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 14px;
+    padding: 10px 16px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
   }
 
-  .eg-btn.secondary {
-    background: #d9d9d9;
-    color: #000;
-    font-weight: 500;
+  #plantBtn:active {
+    transform: scale(0.97);
   }
 
-  .eg-btn:active {
-    transform: scale(0.98);
+  @media (max-width: 600px) {
+    #ui-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    #thoughtInput {
+      width: 100%;
+    }
+
+    #plantBtn {
+      width: 100%;
+    }
   }
 </style>
 </head>
 <body>
 
-<!-- p5 draws the garden onto the body background -->
 <div id="ui-bar">
   <input id="thoughtInput" placeholder="type a thought..." maxlength="140" />
-  <button id="plantBtn" class="eg-btn">Plant</button>
-  <button id="pauseBtn" class="eg-btn secondary">Pause</button>
-  <button id="switchBtn" class="eg-btn secondary">Switch Garden</button>
+  <button id="plantBtn">Plant</button>
 </div>
 
 <script src="sketch.js"></script>
