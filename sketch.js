@@ -1,63 +1,74 @@
 // =====================
-// GLOBAL STATE
+// ECHO GARDEN — INSTALLATION BUILD
 // =====================
 
+// mask images and qr
 let masks = [];
 let maskIdx = 0;
 let prevIdx = 0;
+let qrImg;
 
+// fade state between masks
 let fading = false;
 let fadeT = 0;
 
-let wordsG;   // layer for mosaic text
-let bgG;      // cached gradient background
+// drawing layers
+let wordsG;
+let bgG;
 
-// bands of text
+// text bands
 let posLines = [];
 let neuLines = [];
 let negLines = [];
 
-let bandOffset = { pos: 0, neu: 0, neg: 0 }; // scrolling offsets
-// drift speed is now NEGATIVE so text flows left -> right
+// scrolling offset so text drifts horizontally
+let bandOffset = { pos: 0, neu: 0, neg: 0 };
+// negative speeds = drift feels left→right to the eye
 let bandDriftSpeed = { pos: -0.15, neu: -0.1, neg: -0.2 };
 
-// UI refs
-let thoughtInput;
-let plantBtn;
-let pauseBtn;
-let switchBtn;
+// DOM handles
+let thoughtInput, plantBtn, pauseBtn, switchBtn;
 
-// tuneables
+// tuning
 let zoom = 1;
-let gridStep = 9;         // smaller step = tighter spacing, sharper silhouette
-let maskCutoff = 58;      // bright vs dark cutoff for where text appears
-let reveal = 0.8;         // per-cell noise gate
-let easingSpeed = 0.04;
+let gridStep = 9;          // smaller => denser letters
+let maskCutoff = 58;       // brightness threshold to decide sky vs plant
+let reveal = 0.8;          // per-cell noise cutoff (0 = full text, 1 = sparse)
+let easingSpeed = 0.04;    // fade speed between mask images
 let isPaused = false;
 
 // perf
-let mosaicCooldown = 0;   // only rebuild heavy mosaic every N frames
+let mosaicCooldown = 0;    // recompute mosaic every few frames instead of every frame
 
-// pulse animation for recent submissions
-// pulseWords: { text, bornTime, bucket, x, y }
+// pulse bloom animation for new submissions
+// each: { text, bornTime, bucket, x, y }
 let pulseWords = [];
-let pulseDuration = 2000; // ms visible (longer, calmer)
+let pulseDuration = 2000;  // ms on screen for the bloom highlight
 
-// wave motion
-// how wavy / how slow
-let waveAmp = 3;          // px vertical wiggle amplitude
-let waveFreq = 0.15;      // frequency for sin()
-let waveSpeed = 0.4;      // how fast wave moves
+// organic wobble
+let waveAmp = 3;
+let waveFreq = 0.15;
+let waveSpeed = 0.4;
+
+// Firebase state
+let firebaseReady = false;
+let lastSeenTs = 0;
 
 
 // =====================
 // PRELOAD
 // =====================
 function preload() {
-  for (let i = 1; i <= 4; i++) {
-    masks.push(loadImage(`GardenMask_${i}.png`));
-  }
+  // masks
+  masks.push(loadImage('GardenMask_1.png'));
+  masks.push(loadImage('GardenMask_2.png'));
+  masks.push(loadImage('GardenMask_3.png'));
+  masks.push(loadImage('GardenMask_4.png'));
+
+  // qr code for HUD
+  qrImg = loadImage('qr.png');
 }
+
 
 // =====================
 // SETUP
@@ -67,11 +78,10 @@ function setup() {
   textAlign(CENTER, CENTER);
 
   wordsG = createGraphics(width, height);
-
   bgG = createGraphics(width, height);
   rebuildBackgroundGradient();
 
-  // Placeholder text so wall is never empty
+  // starting text so the garden is visible right away
   posLines = [
     "i'm still here",
     "you are safe here",
@@ -79,6 +89,7 @@ function setup() {
     "this moment belongs to you",
     "light is allowed to stay"
   ];
+
   neuLines = [
     "echo garden",
     "shifting roots",
@@ -86,6 +97,7 @@ function setup() {
     "listening",
     "we are present"
   ];
+
   negLines = [
     "the quiet ache",
     "it is okay to feel it",
@@ -98,24 +110,11 @@ function setup() {
   bandOffset.neu = 120;
   bandOffset.neg = 240;
 
-  // hook existing DOM buttons/field
-  const allInputs = selectAll('input');
-  if (allInputs.length > 0) {
-    // assume the bottom bar input is last
-    thoughtInput = allInputs[allInputs.length - 1];
-  }
-
-  const allButtons = selectAll('button');
-  allButtons.forEach(btn => {
-    const label = (btn.html() || '').toLowerCase();
-    if (label.includes('plant')) {
-      plantBtn = btn;
-    } else if (label.includes('pause')) {
-      pauseBtn = btn;
-    } else if (label.includes('switch')) {
-      switchBtn = btn;
-    }
-  });
+  // hook up DOM from index.html
+  thoughtInput = select('#thoughtInput');
+  plantBtn    = select('#plantBtn');
+  pauseBtn    = select('#pauseBtn');
+  switchBtn   = select('#switchBtn');
 
   if (plantBtn) {
     plantBtn.mousePressed(handlePlant);
@@ -130,21 +129,27 @@ function setup() {
       cycleGarden();
     });
   }
+
+  // init Firebase listener
+  initFirebase();
 }
 
+
 // =====================
-// DRAW
+// DRAW LOOP
 // =====================
 function draw() {
   if (isPaused) return;
 
-  // drift offsets (negative = left->right reading direction feeling)
+  // drift bands each frame
   bandOffset.pos += bandDriftSpeed.pos;
   bandOffset.neu += bandDriftSpeed.neu;
   bandOffset.neg += bandDriftSpeed.neg;
 
+  // draw cached background
   image(bgG, 0, 0);
 
+  // heavy mosaic gets updated every few frames to save CPU
   if (mosaicCooldown <= 0) {
     drawWordsMosaic();
     mosaicCooldown = 2;
@@ -152,23 +157,24 @@ function draw() {
     mosaicCooldown--;
   }
 
-  // place mosaic
   image(wordsG, 0, 0);
 
-  // overlay planted-word pulse bloom
+  // bloom of just-planted thoughts
   drawPulses();
 
-  // invite prompt / future QR call-to-action
+  // HUD invite + QR
   drawPromptHUD();
 
+  // finish fade between garden silhouettes
   if (fading) {
     fadeT = min(1, fadeT + easingSpeed);
     if (fadeT >= 1) fading = false;
   }
 }
 
+
 // =====================
-// EVENT: PLANT WORD
+// LOCAL INPUT
 // =====================
 function handlePlant() {
   if (!thoughtInput) return;
@@ -176,10 +182,28 @@ function handlePlant() {
   if (!txt.length) return;
 
   thoughtInput.value('');
+  plantExternalText(txt);
+}
 
-  // classify to band (soft rule)
-  let bucket = 'neu';
+
+// =====================
+// REMOTE INPUT
+// =====================
+
+// Called by Firebase listener when new phone submission arrives
+function injectRemoteText(txt, ts) {
+  if (ts && ts <= lastSeenTs) return; // prevent re-adding older entries
+  if (ts) lastSeenTs = ts;
+
+  plantExternalText(txt);
+}
+
+// Shared logic for local + remote “plant”
+function plantExternalText(txt) {
   const lower = txt.toLowerCase();
+
+  // lightweight "sentiment routing"
+  let bucket = 'neu';
   if (lower.match(/love|hope|light|thank|grateful|beautiful|peace|calm|ok|safe|tudo bem/)) {
     bucket = 'pos';
   } else if (lower.match(/hurt|tired|alone|angry|sad|scared|fear|pain|ache|medo/)) {
@@ -197,9 +221,8 @@ function handlePlant() {
     bandOffset.neu += txt.length;
   }
 
-  // pick a calm anchored pulse position in the band
+  // choose where the pulse appears in that band
   const { px, py } = pickBandAnchor(bucket);
-
   pulseWords.push({
     text: txt,
     bornTime: millis(),
@@ -208,11 +231,13 @@ function handlePlant() {
     y: py
   });
 
+  // move to next garden silhouette
   cycleGarden();
 }
 
+
 // =====================
-// PICK BAND ANCHOR FOR PULSE (CALMER THAN RANDOM EVERY FRAME)
+// GARDEN STATE
 // =====================
 function pickBandAnchor(bucket) {
   let yMin, yMax;
@@ -231,9 +256,6 @@ function pickBandAnchor(bucket) {
   return { px, py };
 }
 
-// =====================
-// SWITCH MASK
-// =====================
 function cycleGarden() {
   prevIdx = maskIdx;
   maskIdx = (maskIdx + 1) % masks.length;
@@ -241,8 +263,9 @@ function cycleGarden() {
   fadeT = 0;
 }
 
+
 // =====================
-// DRAW MOSAIC
+// WORD MOSAIC RENDER
 // =====================
 function drawWordsMosaic() {
   const curr = readyMask(masks[maskIdx]);
@@ -256,51 +279,43 @@ function drawWordsMosaic() {
     prevPixels = masks[prevIdx].pixels;
   }
 
-  const currPixels = curr.pixels;
-
   wordsG.clear();
   wordsG.textAlign(CENTER, CENTER);
 
   const colsPerRow = floor(width / gridStep);
 
-  // --- CENTERING MATH ---
-  // We want to draw the mask centered in the canvas instead of pinned top-left.
-  // We'll map each canvas cell (xCanvas,yCanvas) to a sample point (xImg,yImg)
-  // inside the mask image, scaled and centered.
+  // compute how big we draw the mask and where it sits on screen (centered)
   const maskImg = curr;
   const aspectCanvas = width / height;
-  const aspectMask   = maskImg.width / maskImg.height;
+  const aspectMask = maskImg.width / maskImg.height;
 
   let drawW, drawH;
   if (aspectMask > aspectCanvas) {
-    // mask is "wider" -> fit to width
     drawW = width * 0.9;
     drawH = drawW / aspectMask;
   } else {
-    // mask is "taller" -> fit to height
     drawH = height * 0.6;
     drawW = drawH * aspectMask;
   }
 
   const offsetX = (width  - drawW) * 0.5;
-  const offsetY = (height - drawH) * 0.4; // a little toward upper/middle
+  const offsetY = (height - drawH) * 0.4; // a little above vertical center
 
-  for (let yCanvas = 0, row = 0; yCanvas < height; yCanvas += gridStep, row++) {
-    for (let xCanvas = 0, col = 0; xCanvas < width; xCanvas += gridStep, col++) {
+  const currPixels = curr.pixels;
 
-      // find relative position within the centered mask rectangle
-      let xNorm = (xCanvas - offsetX) / drawW;
-      let yNorm = (yCanvas - offsetY) / drawH;
+  for (let yC = 0, row = 0; yC < height; yC += gridStep, row++) {
+    for (let xC = 0, col = 0; xC < width; xC += gridStep, col++) {
 
-      // convert to pixel coords in source mask
+      // normalize canvas coords into mask image coords
+      let xNorm = (xC - offsetX) / drawW;
+      let yNorm = (yC - offsetY) / drawH;
       let xImg = floor(xNorm * maskImg.width);
       let yImg = floor(yNorm * maskImg.height);
 
-      // clamp so out-of-bounds zones just read as "background sky" brightness
       xImg = constrain(xImg, 0, maskImg.width  - 1);
       yImg = constrain(yImg, 0, maskImg.height - 1);
 
-      // brightness lookup with optional fade between prev and curr mask images
+      // brightness lookup
       let b = getBrightnessFast(maskImg, xImg, yImg, currPixels);
 
       if (fading && prevPixels) {
@@ -308,103 +323,81 @@ function drawWordsMosaic() {
         b = lerp(bp, b, fadeT);
       }
 
-      // we draw TEXT in bright areas (sky), skip dark silhouette
+      // text goes in the BRIGHT "sky" areas, not in the dark plant silhouette
       if (b > maskCutoff) {
-        // per-cell reveal noise, same as before
-        const gate = noise(xCanvas * 0.03, yCanvas * 0.03, 7.77);
+        // noise gate so it's not solid white
+        const gate = noise(xC * 0.03, yC * 0.03, 7.77);
         if (gate > reveal) continue;
 
-        // choose the band text based on vertical % (BUT use the final on-screen y)
-        const ch = charForCell(yCanvas / height, row, col, colsPerRow);
+        const ch = charForCell(yC / height, row, col, colsPerRow);
 
-        // wave offset: very gentle vertical wobble
+        // tiny wave motion for organic feel
         const wave =
-          sin((frameCount * waveSpeed + xCanvas * waveFreq) * 0.1) * waveAmp;
+          sin((frameCount * waveSpeed + xC * waveFreq) * 0.1) * waveAmp;
 
-        wordsG.textSize(gridStep * 0.9 * zoom); // slightly tighter than before
+        wordsG.textSize(gridStep * 0.9 * zoom);
 
-        // subtle shadow
+        // drop shadow to make characters pop on projection
         wordsG.fill(0, 180);
-        wordsG.text(ch, xCanvas + 1, yCanvas + 1 + wave);
+        wordsG.text(ch, xC + 1, yC + 1 + wave);
 
-        // main glyph
         wordsG.fill(240);
-        wordsG.text(ch, xCanvas, yCanvas + wave);
+        wordsG.text(ch, xC, yC + wave);
       }
     }
   }
 }
 
-// choose which band (pos/neu/neg) and which char from that band
-// uses bandOffset which is drifting every frame
 function charForCell(yNorm, row, col, colsPerRow) {
-  let lines;
-  let key;
-
-  if (yNorm < 0.40 && posLines.length) {
-    lines = posLines;
-    key = 'pos';
-  } else if (yNorm > 0.70 && negLines.length) {
-    lines = negLines;
-    key = 'neg';
-  } else {
-    lines = neuLines;
-    key = 'neu';
-  }
+  let lines, key;
+  if (yNorm < 0.40 && posLines.length) { lines = posLines; key = 'pos'; }
+  else if (yNorm > 0.70 && negLines.length) { lines = negLines; key = 'neg'; }
+  else { lines = neuLines; key = 'neu'; }
 
   const s = lines.join("  ");
   if (!s.length) return " ";
 
-  // bandOffset[key] drifts NEGATIVE now,
-  // so reading direction feels left -> right.
-  const idxFloat =
-    (row * colsPerRow + col + bandOffset[key]) % s.length;
+  // bandOffset drifts each frame (negative drift = feels like left→right motion)
+  const idxFloat = (row * colsPerRow + col + bandOffset[key]) % s.length;
 
-  // JS modulo of negative can be negative, so wrap safely:
+  // modulo in JS can go negative, fix that:
   let idx = floor(idxFloat);
   if (idx < 0) idx += s.length;
 
   return s.charAt(idx);
 }
 
+
 // =====================
-// PULSE EFFECT
+// PULSE BLOOMS
 // =====================
 function drawPulses() {
   const now = millis();
-  const repeatsPerPulse = 1; // no more seizure burst, just 1 anchored glow
+  pulseWords = pulseWords.filter(p => now - p.bornTime < pulseDuration);
 
   textAlign(CENTER, CENTER);
   noStroke();
 
-  pulseWords = pulseWords.filter(p => now - p.bornTime < pulseDuration);
-
   for (let p of pulseWords) {
     const age = now - p.bornTime;
     const t = constrain(age / pulseDuration, 0, 1);
-
     const alpha = map(t, 0, 1, 255, 0);
+    const sizeNow = lerp(gridStep * 2.2, gridStep * 1.0, t);
 
-    const sizeStart = gridStep * 2.2;  // smaller than before
-    const sizeEnd   = gridStep * 1.0;
-    const sizeNow   = lerp(sizeStart, sizeEnd, t);
+    fill(0, alpha * 0.6);
+    textSize(sizeNow);
+    text(p.text, p.x + 2, p.y + 2);
 
-    for (let i = 0; i < repeatsPerPulse; i++) {
-      fill(0, alpha * 0.6);
-      textSize(sizeNow);
-      text(p.text, p.x + 2, p.y + 2);
-
-      fill(255, alpha);
-      text(p.text, p.x, p.y);
-    }
+    fill(255, alpha);
+    text(p.text, p.x, p.y);
   }
 }
 
+
 // =====================
-// HUD PROMPT
+// HUD PROMPT + QR
 // =====================
 function drawPromptHUD() {
-  // Dimensions for the prompt box
   const boxPaddingX = 12;
   const boxPaddingY = 8;
   const lineH = 16;
@@ -415,32 +408,76 @@ function drawPromptHUD() {
   textSize(14);
   textAlign(LEFT, TOP);
 
-  // measure text width for background box
+  // measure bubble size
   const w1 = textWidth(textLine1);
   const w2 = textWidth(textLine2);
   const boxW = max(w1, w2) + boxPaddingX * 2;
   const boxH = lineH * 2 + boxPaddingY * 2;
 
-  // place it just above the input bar, left side
-  // your input bar seems ~50px tall incl. buttons, so we float above that
+  // anchor above the bottom UI bar
   const marginLeft = 20;
-  const marginBottomFromCanvas = 150; // tweak up/down visually
+  const marginBottomFromCanvas = 150; // you tuned this visually
   const boxX = marginLeft;
   const boxY = height - marginBottomFromCanvas;
 
-  // background bubble
   push();
   noStroke();
-  fill(0, 180); // translucent dark backdrop
-  rect(boxX, boxY, boxW, boxH, 6); // rounded corners
+  fill(0, 180);
+  rect(boxX, boxY, boxW, boxH, 6);
 
-  // text
   fill(255);
   text(textLine1, boxX + boxPaddingX, boxY + boxPaddingY);
+
   fill(200);
   text(textLine2, boxX + boxPaddingX, boxY + boxPaddingY + lineH);
+
+  // draw QR code next to bubble
+  if (qrImg) {
+    const qrSize = boxH;
+    image(qrImg, boxX + boxW + 10, boxY, qrSize, qrSize);
+  }
+
   pop();
 }
+
+
+// =====================
+// FIREBASE SETUP/LISTEN
+// =====================
+
+// This runs once in setup()
+function initFirebase() {
+  // NOTE: Using your actual config values + db URL
+  const firebaseConfig = {
+    apiKey: "AIzaSyCdXqb4ThSjMV0nVwWwcxpix6xah9Rb9xc",
+    authDomain: "echo-garden-15462.firebaseapp.com",
+    databaseURL: "https://echo-garden-15462-default-rtdb.firebaseio.com",
+    projectId: "echo-garden-15462",
+    storageBucket: "echo-garden-15462.firebasestorage.app",
+    messagingSenderId: "487946881725",
+    appId: "1:487946881725:web:dff84445b0822d5fe145d4"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  firebaseReady = true;
+
+  startFirebaseListener();
+}
+
+function startFirebaseListener() {
+  if (!firebaseReady) return;
+
+  // listen to new submissions coming in
+  const ref = firebase.database().ref('echoGarden/submissions');
+
+  ref.on('child_added', snap => {
+    const val = snap.val();
+    if (val && val.text) {
+      injectRemoteText(val.text, val.timestamp);
+    }
+  });
+}
+
 
 // =====================
 // HELPERS
@@ -449,11 +486,11 @@ function readyMask(img) {
   return img && img.width > 0 ? img : null;
 }
 
-function getBrightnessFast(img, x, y, pixelsArr) {
+function getBrightnessFast(img, x, y, pixels) {
   const idx = 4 * (y * img.width + x);
-  const r = pixelsArr[idx];
-  const g = pixelsArr[idx + 1];
-  const b = pixelsArr[idx + 2];
+  const r = pixels[idx];
+  const g = pixels[idx + 1];
+  const b = pixels[idx + 2];
   return (r + g + b) / 3;
 }
 
