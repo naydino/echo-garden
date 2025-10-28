@@ -8,56 +8,72 @@
 />
 <title>Echo Garden</title>
 <style>
+  :root {
+    --bg: #0f1f21;
+    --panel-bg: rgba(0,0,0,0.4);
+    --panel-border: rgba(255,255,255,0.12);
+    --text-main: #ffffff;
+    --text-dim: #b8cacc;
+    --input-bg: rgba(255,255,255,0.07);
+    --input-border: rgba(255,255,255,0.2);
+  }
+
+  * {
+    box-sizing: border-box; /* <-- fixes the overflow issue */
+    -webkit-font-smoothing: antialiased;
+  }
+
   body {
-    background: #0f1f21;
-    color: #fff;
+    background: var(--bg);
+    color: var(--text-main);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-    padding: 2rem 1.5rem;
-    max-width: 420px;
+    padding: 2rem 1.5rem 4rem;
+    max-width: 480px;
     margin: 0 auto;
     line-height: 1.4;
+    text-align: center;
   }
 
   h1 {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-main);
     margin: 0 0 0.5rem;
-    text-align: center;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   p.desc {
     font-size: 0.9rem;
-    color: #b8cacc;
-    text-align: center;
+    color: var(--text-dim);
     margin: 0 0 2rem;
   }
 
   .card {
-    background: rgba(0,0,0,0.4);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
     border-radius: 12px;
     padding: 1rem;
+    text-align: left;
   }
 
   label {
     font-size: 0.8rem;
-    color: #b8cacc;
+    color: var(--text-dim);
     display: block;
     margin-bottom: 0.4rem;
   }
 
   input[type="text"] {
     width: 100%;
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.2);
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     padding: 0.7rem 0.8rem;
-    color: #fff;
+    color: var(--text-main);
     font-size: 1rem;
     outline: none;
+    display: block;
   }
 
   button {
@@ -80,7 +96,7 @@
   .thanks {
     margin-top: 1rem;
     font-size: 0.8rem;
-    color: #8aa5a7;
+    color: var(--text-dim);
     text-align: center;
     min-height: 1.2rem;
   }
@@ -109,20 +125,21 @@
   Be kind. Be gentle. This is a shared space.
 </footer>
 
-<!-- Firebase -->
+<!-- Firebase compat scripts -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
 <script>
-// 🔴 SAME CONFIG AS IN YOUR WALL SKETCH
+// Your Firebase config (using your values + databaseURL added)
 const firebaseConfig = {
-   apiKey: "AIzaSyCdXqb4ThSjMV0nVwWwcxpix6xah9Rb9xc",
-    authDomain: "echo-garden-15462.firebaseapp.com",
-    databaseURL: "https://echo-garden-15462-default-rtdb.firebaseio.com",
-    projectId: "echo-garden-15462",
-    storageBucket: "echo-garden-15462.firebasestorage.app",
-    messagingSenderId: "487946881725",
-    appId: "1:487946881725:web:dff84445b0822d5fe145d4"
+  apiKey: "AIzaSyCdXqb4ThSjMV0nVwWwcxpix6xah9Rb9xc",
+  authDomain: "echo-garden-15462.firebaseapp.com",
+  databaseURL: "https://echo-garden-15462-default-rtdb.firebaseio.com",
+  projectId: "echo-garden-15462",
+  storageBucket: "echo-garden-15462.firebasestorage.app",
+  messagingSenderId: "487946881725",
+  appId: "1:487946881725:web:dff84445b0822d5fe145d4",
+  // measurementId not needed for this page
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -134,6 +151,7 @@ const thanksEl = document.getElementById('thanks');
 
 sendBtn.addEventListener('click', async () => {
   const text = msgInput.value.trim();
+
   if (!text) {
     thanksEl.textContent = "please write something first 🌱";
     return;
@@ -146,13 +164,15 @@ sendBtn.addEventListener('click', async () => {
 
   try {
     await db.ref('echoGarden/submissions').push(submission);
+
     thanksEl.textContent = "planted. thank you 💚";
     msgInput.value = "";
     setTimeout(() => {
       thanksEl.textContent = "";
     }, 2500);
+
   } catch (e) {
-    console.error(e);
+    console.error("error pushing to firebase:", e);
     thanksEl.textContent = "something went wrong. try again?";
   }
 });
