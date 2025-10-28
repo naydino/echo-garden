@@ -31,7 +31,7 @@ let thoughtInput, plantBtn, pauseBtn, switchBtn;
 
 // tuning
 let zoom = 1;
-let gridStep = 9;          // smaller => denser letters
+let gridStep = 8;          // smaller => denser letters
 let maskCutoff = 58;       // brightness threshold to decide sky vs plant
 let reveal = 0.8;          // per-cell noise cutoff (0 = full text, 1 = sparse)
 let easingSpeed = 0.04;    // fade speed between mask images
@@ -395,50 +395,47 @@ function drawPulses() {
 
 
 // =====================
-// HUD PROMPT + QR
+// HUD PROMPT + QR (enlarged)
 // =====================
 function drawPromptHUD() {
-  const boxPaddingX = 12;
-  const boxPaddingY = 8;
-  const lineH = 16;
+  const boxPaddingX = 24;
+  const boxPaddingY = 16;
+  const lineH = 30;
 
   const textLine1 = "ADD A THOUGHT →";
   const textLine2 = "type below or scan QR";
 
-  textSize(14);
+  textSize(28);
   textAlign(LEFT, TOP);
 
-  // measure bubble size
   const w1 = textWidth(textLine1);
   const w2 = textWidth(textLine2);
   const boxW = max(w1, w2) + boxPaddingX * 2;
   const boxH = lineH * 2 + boxPaddingY * 2;
 
-  // anchor above the bottom UI bar
-  const marginLeft = 20;
-  const marginBottomFromCanvas = 150; // you tuned this visually
+  const marginLeft = 40;
+  const marginBottomFromCanvas = 220; // higher up
   const boxX = marginLeft;
   const boxY = height - marginBottomFromCanvas;
 
   push();
   noStroke();
-  fill(0, 180);
-  rect(boxX, boxY, boxW, boxH, 6);
+  fill(0, 200);
+  rect(boxX, boxY, boxW, boxH, 10);
 
   fill(255);
   text(textLine1, boxX + boxPaddingX, boxY + boxPaddingY);
-
   fill(200);
   text(textLine2, boxX + boxPaddingX, boxY + boxPaddingY + lineH);
 
-  // draw QR code next to bubble
+  // larger QR — 4× previous size
   if (qrImg) {
-    const qrSize = boxH;
-    image(qrImg, boxX + boxW + 10, boxY, qrSize, qrSize);
+    const qrSize = boxH * 2.5;
+    image(qrImg, boxX + boxW + 20, boxY - (qrSize - boxH) / 2, qrSize, qrSize);
   }
-
   pop();
 }
+
 
 
 // =====================
