@@ -421,8 +421,8 @@ function drawPromptHUD() {
   const textBlockW = max(w1, w2);
 
   // QR size slightly smaller than before so it's not screaming
-  const qrSize = 180; // was huge, now calmer but still very scannable on a wall
-
+  const qrSize = 140;  // smaller, calmer
+fill(0, 130);        
   // panel dims: text block + gap + qr
   const gap = 24;
   const panelW = paddingX * 2 + textBlockW + gap + qrSize;
