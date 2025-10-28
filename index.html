@@ -1,42 +1,88 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Echo Garden</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
-  <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Echo Garden</title>
 
-  <!-- Firebase App (Core SDK) -->
+<link rel="stylesheet" href="style.css" />
+
+<!-- p5.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+
+<!-- Firebase compat SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<!-- Realtime Database -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #0f1f21;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    color: #fff;
+  }
 
-  <style>
-    :root { color-scheme: light dark; }
-    body { margin:0; padding:0; background:#0f2c31; font-family: system-ui, sans-serif; color:#e8f7f4; }
-    .app-title { position: absolute; top: 1%; left: 1%; font-size: 28px; letter-spacing: 0.04em; margin:0; }
-    #ui {
-      position: absolute; bottom: 1%; left: 1%; right: 1%;
-      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-      background: rgba(15,44,49,.5); padding:10px; border-radius:12px; backdrop-filter: blur(6px);
-    }
-    button, input, select { padding:8px 12px; border-radius:10px; border:0; }
-    input[type="text"] { min-width: 260px; flex-grow: 1; }
-    #sentDebug { font-size: 12px; opacity:.8; margin-left:6px; }
-    canvas { display: block; }
-  </style>
+  #ui-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+    background: rgba(0,0,0,0.4);
+    border-top: 1px solid rgba(255,255,255,0.15);
+    font-size: 14px;
+    color: #fff;
+  }
+
+  #thoughtInput {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .eg-btn {
+    background: #fff;
+    color: #0f1f21;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .eg-btn.secondary {
+    background: #d9d9d9;
+    color: #000;
+    font-weight: 500;
+  }
+
+  .eg-btn:active {
+    transform: scale(0.98);
+  }
+</style>
 </head>
 <body>
-  <h1 class="app-title">ECHO GARDEN</h1>
-  <div id="ui">
-    <input id="usertext" type="text" placeholder="type a thought…" />
-    <button id="plant">Plant</button>
-    <button id="pause">Pause</button>
-    <button id="switch">Switch Garden</button>
-    <span id="sentDebug"></span>
-  </div>
-  <script src="sketch.js"></script>
+
+<!-- p5 draws the garden onto the body background -->
+<div id="ui-bar">
+  <input id="thoughtInput" placeholder="type a thought..." maxlength="140" />
+  <button id="plantBtn" class="eg-btn">Plant</button>
+  <button id="pauseBtn" class="eg-btn secondary">Pause</button>
+  <button id="switchBtn" class="eg-btn secondary">Switch Garden</button>
+</div>
+
+<script src="sketch.js"></script>
 </body>
 </html>
