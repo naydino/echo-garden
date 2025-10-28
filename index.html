@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Echo Garden</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+  <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+
+  <!-- Firebase App (Core SDK) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<!-- Realtime Database -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin:0; padding:0; background:#0f2c31; font-family: system-ui, sans-serif; color:#e8f7f4; }
+    .app-title { position: absolute; top: 1%; left: 1%; font-size: 28px; letter-spacing: 0.04em; margin:0; }
+    #ui {
+      position: absolute; bottom: 1%; left: 1%; right: 1%;
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      background: rgba(15,44,49,.5); padding:10px; border-radius:12px; backdrop-filter: blur(6px);
+    }
+    button, input, select { padding:8px 12px; border-radius:10px; border:0; }
+    input[type="text"] { min-width: 260px; flex-grow: 1; }
+    #sentDebug { font-size: 12px; opacity:.8; margin-left:6px; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <h1 class="app-title">ECHO GARDEN</h1>
+  <div id="ui">
+    <input id="usertext" type="text" placeholder="type a thought…" />
+    <button id="plant">Plant</button>
+    <button id="pause">Pause</button>
+    <button id="switch">Switch Garden</button>
+    <span id="sentDebug"></span>
+  </div>
+  <script src="sketch.js"></script>
+</body>
+</html>
