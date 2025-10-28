@@ -401,10 +401,8 @@ function drawPulses() {
 // HUD PROMPT + QR (desktop only)
 // =====================
 function drawPromptHUD() {
-  // on phones, don't show this overlay (they already have the input bar)
   if (isMobile) return;
 
-  // visual layout numbers
   const paddingX = 24;
   const paddingY = 16;
   const lineH = 30;
@@ -412,7 +410,6 @@ function drawPromptHUD() {
   const textLine1 = "ADD A THOUGHT →";
   const textLine2 = "type below or scan QR";
 
-  // text styling first, so we can measure width
   textSize(28);
   textAlign(LEFT, TOP);
 
@@ -420,43 +417,41 @@ function drawPromptHUD() {
   const w2 = textWidth(textLine2);
   const textBlockW = max(w1, w2);
 
-  // QR size slightly smaller than before so it's not screaming
-  const qrSize = 140;  // smaller, calmer
-fill(0, 130);        
-  // panel dims: text block + gap + qr
+  const qrSize = 140; // toned down
   const gap = 24;
-  const panelW = paddingX * 2 + textBlockW + gap + qrSize;
-  const panelH = paddingY * 2 + max(lineH * 2, qrSize * 0.8); 
-  // qr might be taller, but we align vertically anyway
 
-  // position panel up from bottom-left
-  const panelX = 40;
-  const panelY = height - 260; // push up a bit so not colliding with bottom bar
+  const panelW = paddingX * 2 + textBlockW + gap + qrSize;
+  const panelH = paddingY * 2 + max(lineH * 2, qrSize * 0.8);
+
+  const panelX = 32;
+  const panelY = height - 280; // nudged a bit higher to clear the new bar
 
   push();
   noStroke();
-  // softer background, more see-through so it's not a giant black chunk
-  fill(0, 160);
+
+  // slightly more transparent now
+  fill(0, 130);
   rect(panelX, panelY, panelW, panelH, 12);
 
-  // draw text block
   fill(255);
   text(textLine1, panelX + paddingX, panelY + paddingY);
 
   fill(200);
   text(textLine2, panelX + paddingX, panelY + paddingY + lineH);
 
-  // draw QR to the right of the text
   if (qrImg) {
     const qrX = panelX + paddingX + textBlockW + gap;
-    // vertically align qr to panel center
     const qrY = panelY + (panelH - qrSize) / 2;
+
+    // soften brightness a tad
+    push();
+    tint(255, 180);
     image(qrImg, qrX, qrY, qrSize, qrSize);
+    pop();
   }
 
   pop();
 }
-
 
 
 
